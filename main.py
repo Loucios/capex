@@ -17,15 +17,15 @@ def main():
     }
     deadlines = {
         'start': 2022,
-        'end': 2023
+        'end': 2024
     }
     deflators = {
         '2020': 1,
         '2021': 1.1,
         '2022': 1.1,
-        '2023': 1,
-        '2024': 1,
-        '2025': 1
+        '2023': 1.1,
+        '2024': 1.1,
+        '2025': 1.1
     }
     design = 0.1
     capex_flow = calculations.get_capex_flow(

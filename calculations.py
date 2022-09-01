@@ -46,7 +46,7 @@ class Calculations:
             # print(capex_flow)
         # define deflator for first year - 1 of construction work
         deflator = 1
-        for year in range(terms['start'] - terms['prices_year']):
+        for year in range(deadlines['start'] - terms['prices_year']):
             '''print(deflators)
             print(terms['prices_year'] + year)
             print(deflators.get(str(terms['prices_year'] + year)))'''
