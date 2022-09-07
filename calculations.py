@@ -20,7 +20,7 @@ class Calculations:
         self.heating_network_unit_costs = dict2
 
     def get_energy_source_capex(self, power: float, unit_type: str) -> float:
-        powers = self.energy_source_unit_costs.get('power')
+        powers = self.energy_source_unit_costs.get('Диапазон мощности')
         # we need to find the nearest power for our value
         # then define the unit cost corresponds this power
         unit_costs = self.energy_source_unit_costs.get(unit_type)
@@ -28,8 +28,11 @@ class Calculations:
         # then define the construction work cost for the object with this power
         return power * unit_cost
 
-    def get_heating_network_cost(self, diameter, length, laying_type,
-                                 unit_type):
+    def get_heating_network_cost(self,
+                                 diameter: float,
+                                 length: float,
+                                 laying_type: str,
+                                 unit_type: str) -> float:
         diameters = self.heating_network_unit_costs.get('diameter')
         unit_costs = self.heating_network_unit_costs.get(laying_type
                                                          + unit_type)
