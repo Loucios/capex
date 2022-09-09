@@ -1,5 +1,11 @@
 class Calculations:
-    def __init__(self, dict1: dict, dict2: dict) -> None:
+    def __init__(self,
+                 energy_source_unit_costs: dict,
+                 heating_network_unit_costs: dict,
+                 deflators: dict,
+                 terms: dict,
+                 stages: dict,
+                 nds: dict) -> None:
         """
         energy_source_unit_costs = {
             'powers': [list of powers],
@@ -15,9 +21,18 @@ class Calculations:
                 [list of specific layer type and construction type unit costs],
             ...
         }
+        deflators = {
+            '№ п/п': [],
+            'Год': [list of years],
+            'Индекс': [list of deflators],
+        }
         """
-        self.energy_source_unit_costs = dict1
-        self.heating_network_unit_costs = dict2
+        self.energy_source_unit_costs = energy_source_unit_costs
+        self.heating_network_unit_costs = heating_network_unit_costs
+        self.deflators = deflators
+        self.terms = terms
+        self.stages = stages
+        self.nds = nds
 
     def get_energy_source_capex(self, power: float, unit_type: str) -> float:
         powers = self.energy_source_unit_costs.get('Диапазон мощности')
@@ -28,12 +43,12 @@ class Calculations:
         # then define the construction work cost for the object with this power
         return power * unit_cost
 
-    def get_heating_network_cost(self,
-                                 diameter: float,
-                                 length: float,
-                                 laying_type: str,
-                                 unit_type: str) -> float:
-        diameters = self.heating_network_unit_costs.get('diameter')
+    def get_heating_network_capex(self,
+                                  diameter: float,
+                                  length: float,
+                                  laying_type: str,
+                                  unit_type: str) -> float:
+        diameters = self.heating_network_unit_costs.get('2Ду, мм')
         unit_costs = self.heating_network_unit_costs.get(laying_type
                                                          + unit_type)
         unit_cost = unit_costs[self.binary_search(diameter, diameters)]
@@ -54,29 +69,34 @@ class Calculations:
 
     def get_capex_flow(self,
                        capex: float,
-                       terms: dict,
-                       deadlines: dict,
-                       deflators: dict,
-                       design_rate: float) -> dict:
+                       start: int,
+                       end: int,
+                       object_type: str) -> dict:
         # create capex flow
-        capex_flow = {}
-        for year in range(terms['end'] - terms['start'] + 1):
-            capex_flow[terms['start'] + year] = 0
-        # define deflator for first year - 1 of construction work
+        capex_flow = []
+        time = end - start + 1
         deflator = 1
-        for year in range(deadlines['start'] - terms['prices_year']):
-            deflator *= deflators.get(str(terms['prices_year'] + year))
-        # fill the capex flow
-        # in the first year we carry out design and survey work
-        time = deadlines['end'] - deadlines['start'] + 1
-        for year in range(time):
-            deflator *= deflators.get(str(deadlines['start'] + year))
-            if time == 1:
-                capex_flow[deadlines['start']] = capex * deflator
-            elif year:
-                capex_flow[
-                    deadlines['start'] + year
-                ] = capex * (1 - design_rate) * deflator / (time - 1)
-            else:
-                capex_flow[deadlines['start']] = capex * design_rate * deflator
+        design_rate = self.stages['ПИР'][object_type] / 100
+        for index, year in enumerate(self.deflators['Год']):
+            if year >= self.terms['Цены, год'][0]:
+                deflator *= self.deflators['Индекс'][index]
+            # fill the capex flow
+            if (
+                self.terms['Год начала'][0] <= year
+                <= self.terms['Год окончания'][0]
+            ):
+                if start <= year <= end:
+                    if time == 1:
+                        capex_flow.append(capex * deflator)
+                    elif year - start:
+                        capex_flow.append(
+                            capex * (1 - design_rate) * deflator / (time - 1)
+                        )
+                    else:
+                        # in the first year we carry out design and survey work
+                        capex_flow.append(capex * design_rate * deflator)
+                    capex_flow[-1] *= (1 + self.nds['НДС'][0])
+                else:
+                    capex_flow.append(0)
+
         return capex_flow
