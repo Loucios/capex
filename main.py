@@ -1,80 +1,41 @@
 from openpyxl import load_workbook
 from calculations import Calculations
-from tables import TablesByName
+from events import Events
+from names import HeaderTableNames, TableNames
+from styles import head_style, base_style, head_table_style
+from tables import Tables
 
 
 def main():
-    workbook = load_workbook(filename='capex.xlsm', data_only=True)
-    wb = TablesByName(workbook)
-    # print(wb.get_table_data('УдельникиИсточники'))
-    calculations = Calculations(wb.get_table_data('УдельникиИсточники'), {})
-    energy_source_capex = calculations.get_energy_source_capex(100, 'Новое строительство')
-    terms = {
-        'prices_year': 2021,
-        'start': 2022,
-        'end': 2025
-    }
-    deadlines = {
-        'start': 2022,
-        'end': 2023
-    }
-    deflators = {
-        '2020': 1,
-        '2021': 1,
-        '2022': 1,
-        '2023': 1,
-        '2024': 1,
-        '2025': 1
-    }
-    design = 0.1
-    energy_source_capex_flow = calculations.get_capex_flow(
-        energy_source_capex, terms, deadlines, deflators, design
+    table_names = TableNames()
+    filename = table_names.filename
+    header_table_names = HeaderTableNames()
+    wb_for_data = Tables(
+        load_workbook(filename=filename, data_only=True)
     )
-    print(energy_source_capex_flow)
+    calculations = Calculations(
+        wb_for_data.get_table_data(table_names.energy_source_unit_costs),
+        wb_for_data.get_table_data(table_names.heating_network_unit_costs),
+        wb_for_data.get_table_data(table_names.tfu_unit_cost),
+        wb_for_data.get_table_data(table_names.deflators),
+        wb_for_data.get_table_data(table_names.terms),
+        wb_for_data.get_small_table_data(table_names.stages),
+        wb_for_data.get_table_data(table_names.nds),
+    )
+    events = Events(
+        wb_for_data.get_table_data(table_names.energy_source_events),
+        wb_for_data.get_table_data(table_names.heating_network_events),
+        wb_for_data.get_little_table_data(table_names.tso_list),
+    )
+    wb_for_write = load_workbook(filename=filename, keep_vba=True)
+    wb_for_write.add_named_style(base_style)
+    wb_for_write.add_named_style(head_style)
+    wb_for_write.add_named_style(head_table_style)
+    wb_for_write = events.create_base_source_events_table(
+        calculations, wb_for_write, table_names, header_table_names
+    )
+    wb_for_write.save('new_' + filename)
 
 
 if __name__ == '__main__':
     main()
-
-
-def test_calculations():
-    table1 = {}
-    table1['power'] = [2, 5, 10, 13, 20, 25, 50]
-    table1['new'] = [30, 25, 20, 15, 10, 5, 2]
-
-    table2 = {}
-    table2['diameter'] = [80, 100, 125, 150]
-    table2['канальная2'] = [1, 2, 3, 4]
-    table2['канальная1'] = [5, 6, 7, 8]
-    calculations = Calculations(table1, table2)
-    energy_source_capex = calculations.get_energy_source_capex(50, 'new')
-    heating_network_capex = calculations.get_heating_network_cost(
-        100, 10, 'канальная', '1'
-    )
-
-    terms = {
-        'prices_year': 2021,
-        'start': 2022,
-        'end': 2025
-    }
-    deadlines = {
-        'start': 2022,
-        'end': 2023
-    }
-    deflators = {
-        '2020': 1,
-        '2021': 1,
-        '2022': 1,
-        '2023': 1,
-        '2024': 1,
-        '2025': 1
-    }
-    design = 0.1
-    energy_source_capex_flow = calculations.get_capex_flow(
-        energy_source_capex, terms, deadlines, deflators, design
-    )
-    heating_network_capex_flow = calculations.get_capex_flow(
-        heating_network_capex, terms, deadlines, deflators, design
-    )
-    print(energy_source_capex_flow)
-    print(heating_network_capex_flow)
