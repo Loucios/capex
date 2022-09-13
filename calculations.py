@@ -2,45 +2,29 @@ class Calculations:
     def __init__(self,
                  energy_source_unit_costs: dict,
                  heating_network_unit_costs: dict,
+                 tfu_unit_cost: dict,
                  deflators: dict,
                  terms: dict,
                  stages: dict,
                  nds: dict) -> None:
-        """
-        energy_source_unit_costs = {
-            'powers': [list of powers],
-            'type 1': [list of specific type 1 unit costs],
-            'type 2': [list of specific type 2 unit costs],
-            ...
-        }
-        heating_network_unit_costs = {
-            'diameters': [list of diameters],
-            'layer_type_name & constructions_type_1':
-                [list of specific layer type and construction type unit costs],
-            'layer_type_name & constructions_type_2':
-                [list of specific layer type and construction type unit costs],
-            ...
-        }
-        deflators = {
-            '№ п/п': [],
-            'Год': [list of years],
-            'Индекс': [list of deflators],
-        }
-        """
         self.energy_source_unit_costs = energy_source_unit_costs
         self.heating_network_unit_costs = heating_network_unit_costs
+        self.tfu_unit_cost = tfu_unit_cost
         self.deflators = deflators
         self.terms = terms
         self.stages = stages
         self.nds = nds
 
-    def get_energy_source_capex(self, power: float, unit_type: str) -> float:
-        powers = self.energy_source_unit_costs.get('Диапазон мощности')
-        # we need to find the nearest power for our value
-        # then define the unit cost corresponds this power
-        unit_costs = self.energy_source_unit_costs.get(unit_type)
-        unit_cost = unit_costs[self.binary_search(power, powers)]
-        # then define the construction work cost for the object with this power
+    def get_energy_source_capex(self,
+                                power: float,
+                                unit_type: str,
+                                index: int) -> float:
+        if index:
+            powers = self.energy_source_unit_costs.get('Диапазон мощности')
+            unit_costs = self.energy_source_unit_costs.get(unit_type)
+            unit_cost = unit_costs[self.binary_search(power, powers)]
+        else:
+            unit_cost = self.tfu_unit_cost.get(unit_type)[0]
         return power * unit_cost
 
     def get_heating_network_capex(self,
@@ -69,9 +53,14 @@ class Calculations:
 
     def get_capex_flow(self,
                        capex: float,
-                       start: int,
-                       end: int,
+                       time: str,
                        object_type: str) -> dict:
+        time = str(time)
+        if time[:4] == time[-4:]:
+            start = end = int(time)
+        else:
+            start = int(time[:4])
+            end = int(time[-4:])
         # create capex flow
         capex_flow = []
         time = end - start + 1

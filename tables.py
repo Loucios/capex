@@ -39,3 +39,17 @@ class Tables:
                 elif index > 1:
                     data[row[1].value][table_head[index].value] = cell.value
         return data
+
+    def get_little_table_data(self, table_name: str) -> dict:
+        worksheet = self.workbook[self.named_tables[table_name]]
+        table_range = worksheet.tables[table_name].ref
+
+        if len(worksheet[table_range][0]) == 2:
+            return None
+
+        table_data = worksheet[table_range][1:]
+        data = {}
+        for row in table_data:
+            for index, cell in enumerate(row):
+                data[row[1].value] = row[2].value
+        return data
