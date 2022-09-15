@@ -1,15 +1,54 @@
-class Tables:
-    def __init__(self, workbook) -> None:
-        self.workbook = workbook
-        self.named_tables = {}
+from openpyxl import load_workbook
 
-        for worksheet in self.workbook.sheetnames:
-            for table in self.workbook[worksheet].tables:
-                self.named_tables[table] = worksheet
 
-    def get_table_data(self, table_name: str) -> dict:
-        worksheet = self.workbook[self.named_tables[table_name]]
-        table_range = worksheet.tables[table_name].ref
+class OriginTables:
+    def __init__(self, titles) -> None:
+
+        wb = load_workbook(filename=titles.filename, data_only=True)
+        table_names = {}
+        for worksheet in wb.sheetnames:
+            for table in wb[worksheet].tables:
+                table_names[table] = worksheet
+
+        self.energy_source_unit_costs = (
+            self.__get_data(wb,
+                            table_names,
+                            titles.energy_source_unit_costs)
+        )
+        self.heating_network_unit_costs = (
+            self.__get_data(wb,
+                            table_names,
+                            titles.heating_network_unit_costs)
+        )
+        self.tfu_unit_cost = (
+            self.__get_data(wb, table_names, titles.tfu_unit_cost)
+        )
+        self.deflators = self.__get_data(wb, table_names, titles.deflators)
+        self.terms = self.__get_data_from_row(wb, table_names, titles.terms)
+        self.stages = self.__get_data_from_header(wb,
+                                                  table_names,
+                                                  titles.stages)
+        self.nds = self.__get_data_from_row(wb, table_names, titles.nds)
+        self.tso_list = self.__get_data_from_col(wb,
+                                                 table_names,
+                                                 titles.tso_list)
+        self.energy_source_events = (
+            self.__get_data(wb, table_names, titles.energy_source_events)
+        )
+        self.heating_network_events = (
+            self.__get_data(wb, table_names, titles.heating_network_events)
+        )
+
+    def __get_data(self, wb, names, name) -> dict:
+        '''Collect datas as shown below
+        dict = {
+            header_1: column_1_datas,
+            header_2: column_2_datas,
+            ...
+        }
+        '''
+        worksheet = wb[names[name]]
+        table_range = worksheet.tables[name].ref
 
         table_head = worksheet[table_range][0]
         table_data = worksheet[table_range][1:]
@@ -24,9 +63,27 @@ class Tables:
 
         return data
 
-    def get_small_table_data(self, table_name: str) -> dict:
-        worksheet = self.workbook[self.named_tables[table_name]]
-        table_range = worksheet.tables[table_name].ref
+    def __get_data_from_header(self, wb, names, name) -> dict:
+        '''Collect datas as shown below
+        It is assumed that the first column is always a serial number
+        dict = {
+            data(row_2, column_2):
+                {
+                    header_3: data(row_2, column_3),
+                    header_4: data(row_2, column_3),
+                    ...
+                },
+            data(row_3, column_2):
+                {
+                    header_3: data(row_3, column_3),
+                    header_4: data(row_3, column_3),
+                    ...
+                },
+            ...
+        }
+        '''
+        worksheet = wb[names[name]]
+        table_range = worksheet.tables[name].ref
 
         table_head = worksheet[table_range][0]
         table_data = worksheet[table_range][1:]
@@ -40,12 +97,19 @@ class Tables:
                     data[row[1].value][table_head[index].value] = cell.value
         return data
 
-    def get_little_table_data(self, table_name: str) -> dict:
-        worksheet = self.workbook[self.named_tables[table_name]]
-        table_range = worksheet.tables[table_name].ref
-
-        if len(worksheet[table_range][0]) == 2:
-            return None
+    def __get_data_from_col(self, wb, names, name) -> dict:
+        '''Collect datas as shown below
+        It is assumed that the first column is always a serial number
+        It is assumed that the table has only two rows include header
+        dict = {
+            data(row_2, column_2): data(row_2, column_3),
+            data(row_3, column_2): data(row_3, column_3),
+            data(row_3, column_2): data(row_4, column_3),
+            ...
+        }
+        '''
+        worksheet = wb[names[name]]
+        table_range = worksheet.tables[name].ref
 
         table_data = worksheet[table_range][1:]
         data = {}
@@ -53,3 +117,104 @@ class Tables:
             for index, cell in enumerate(row):
                 data[row[1].value] = row[2].value
         return data
+
+    def __get_data_from_row(self, wb, names, name) -> dict:
+        '''Collect datas as shown below
+        It is assumed that the first column is always a serial number
+        It is assumed that the table has only two rows include header
+        dict = {
+            header_1: data(row_2, column_1),
+            header_2: data(row_2, column_2),
+            header_3: data(row_2, column_3),
+            ...
+        }
+        '''
+        worksheet = wb[names[name]]
+        table_range = worksheet.tables[name].ref
+
+        table_head = worksheet[table_range][0]
+        table_data = worksheet[table_range][1]
+        data = {}
+        for index, column in enumerate(table_head):
+            data[table_head[index].value] = table_data[index].value
+        return data
+
+    def __binary_search(self, value: float, array: list) -> int:
+        right = len(array) - 1
+        left = 0
+        while right - left != 1:
+            center = (left + right) // 2
+            if array[center] == value:
+                return center
+            elif value > array[center]:
+                left = center
+            else:
+                right = center
+        return left if array[right] - value > value - array[left] else right
+
+    def get_energy_source_capex(self,
+                                power: float,
+                                unit_type: str,
+                                is_tfu: bool,
+                                titles) -> float:
+
+        if is_tfu:
+            unit_cost = self.tfu_unit_cost.get(unit_type)[0]
+        else:
+            powers = self.energy_source_unit_costs.get(titles.power_range)
+            unit_costs = self.energy_source_unit_costs.get(unit_type)
+            unit_cost = unit_costs[self.__binary_search(power, powers)]
+
+        return power * unit_cost
+
+    def get_heating_network_capex(self,
+                                  diameter: float,
+                                  length: float,
+                                  laying_type: str,
+                                  unit_type: str) -> float:
+        diameters = self.heating_network_unit_costs.get('2Ду, мм')
+        unit_costs = self.heating_network_unit_costs.get(laying_type
+                                                         + unit_type)
+        unit_cost = unit_costs[self.__binary_search(diameter, diameters)]
+        return length * unit_cost
+
+    def get_capex_flow(self,
+                       capex: float,
+                       time: str,
+                       otype: str,
+                       titles) -> dict:
+        time = str(time)
+        if time[:4] == time[-4:]:
+            start = end = int(time)
+        else:
+            start = int(time[:4])
+            end = int(time[-4:])
+        # create capex flow
+        capex_flow = []
+        time = end - start + 1
+        deflator = 1
+        design_rate = self.stages[titles.design][otype] / 100
+        for index, year in enumerate(self.deflators[titles.year]):
+            if year >= self.terms[titles.year_cost]:
+                deflator *= self.deflators[titles.deflator][index]
+
+            # fill the capex flow
+            if (
+                self.terms[titles.first_year] <= year
+                <= self.terms[titles.last_year]
+            ):
+                if start <= year <= end:
+                    if time == 1:
+                        capex_flow.append(capex * deflator)
+                    elif year - start:
+                        capex_flow.append(
+                            capex * (1 - design_rate) * deflator / (time - 1)
+                        )
+                    else:
+                        # in the first year we carry out design and survey work
+                        capex_flow.append(capex * design_rate * deflator)
+                    capex_flow[-1] *= (1 + self.nds[titles.nds])
+                else:
+                    capex_flow.append(0)
+
+        return capex_flow

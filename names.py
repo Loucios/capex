@@ -1,68 +1,121 @@
 from dataclasses import dataclass
 
-'''
+
 @dataclass(frozen=True)
 class Titles:
-    number = '№ п/п'
-    tso_name = 'Наименование EТО'
-    eto_name = 'Наименование ТСО'
-    district = 'Aдминистративный район'
-    source_type = 'ТЭЦ/ котельная'
-    id_source = 'id источника'
-    source = 'Наименование источника'
-    event_title = 'Наименование мероприятия'
-    terms = 'Cроки'
     base_direction = 'Основное направление'
-    unit_type = 'Тип мероприятия'
+    base_style = 'base_style'
+    capex_flow = (
+        'Капитальные затраты в прогнозных ценах с учетом НДС, млн руб.'
+    )
+    chapter_12_directions = 'Направления мероприятий из Главы 12'
+    chapter_8_directions = 'Направления мероприятий Глава 8'
+    deflator = 'Индекс'
+    deflators = 'Индексы'
+    design = 'ПИР'
+    diameter = 'Диаметр, мм'
+    district = 'Aдминистративный район'
+    energy_source_events = 'МероприятияИсточники'
+    energy_source_unit_costs = 'УдельникиИсточники'
+    energy_sources = 'Источники тепловой энергии'
+    eto_name = 'Наименование EТО'
+    event_title = 'Наименование мероприятия'
+    filename = 'capex.xlsm'
+    first_year = 'Год начала'
+    footer_style = 'footer_style'
+    gh = 'Гкал/ч'
+    header_style = 'header_style'
+    heating_network_events = 'МероприятияСети'
+    heating_network_unit_costs = 'УдельникиСети'
+    id_source = 'id источника'
+    inv_pro = 'ИП'
+    last_year = 'Год окончания'
     laying_type = 'Типа прокладки'
     length = 'Протяженность, м'
-    diameter = 'Диаметр, мм'
-    power = 'Гкал/ч'
-    desing = 'ПИР'
-    inv_pro = 'ИП'
-    chapter_8_directions = 'Направления мероприятий Глава 8'
-    chapter_12_directions = 'Направления мероприятий из Главы 12'
-    total_cost = 'Общая стоимость мероприятий, млн руб. без НДС'
-    total = 'Итого'
     mw = 'МВт'
-    gh = 'Гкал/ч'
+    nds = 'НДС'
+    number = '№ п/п'
+    power = 'Гкал/ч'
+    power_range = 'Диапазон мощности'
+    source = 'Наименование источника'
+    source_type = 'ТЭЦ/ котельная'
+    stages = 'Этапы'
+    terms = 'Сроки'
+    tfu_unit_cost = 'ТФУ'
     th = 'т/ч'
-    base_style = 'base_style'
+    title_style = 'title_style'
+    total = 'Итого'
+    total_cost = 'Общая стоимость мероприятий, млн руб. без НДС'
+    tso_list = 'СписокТСО'
+    tso_name = 'Наименование ТСО'
+    unit_type = 'Тип мероприятия'
+    year = 'Год'
+    year_cost = 'Цены, год'
 
 
 class StyleMixin:
     @property
     def base_style(cls):
-        return 'base_style'
+        return Titles.base_style
 
     @property
     def title_style(cls):
-        return 'base_style'
+        return Titles.title_style
 
     @property
     def header_style(cls):
-        return 'header_style'
+        return Titles.header_style
+
+    @property
+    def footer_style(cls):
+        return Titles.footer_style
 
     @property
     def header_height(cls):
         return 70
 
     @property
-    def header_position(cls):
-        return {
-            'title_row': 1,
-            'title_column': 1,
-            'header_row': 3,
-            'header_column': 1,
+    def title_row(cls):
+        return 1
+
+    @property
+    def title_column(cls):
+        return 1
+
+    @property
+    def header_row(cls):
+        return 3
+
+    @property
+    def header_column(cls):
+        return 1
+
+
+class WidthsMixin:
+    def get_width(self, title):
+        widths = {
+            Titles.number: 6,
+            Titles.tso_name: 16,
+            Titles.eto_name: 16,
+            Titles.district: 21,
+            Titles.source: 16,
+            Titles.event_title: 16,
+            Titles.terms: 12,
+            Titles.laying_type: 16,
+            Titles.mw: 7,
+            # Titles.gh: 9,
+            Titles.th: 7,
+            Titles.length: 7,
+            Titles.diameter: 7,
+            Titles.power: 9,
+            Titles.total_cost: 14,
+            Titles.total: 10
         }
-
-
-
-        
+        return widths[title]
 
 
 @dataclass
-class NetworkEventsBaseTableTitles:
+class NetworkEventsBaseTableTitles(WidthsMixin, StyleMixin):
     number: str = Titles.number
     district: str = Titles.district
     source: str = Titles.source
@@ -72,12 +125,18 @@ class NetworkEventsBaseTableTitles:
     length: str = Titles.length
     diametr: str = Titles.diameter
     power: str = Titles.power
-    total_cost: str = total_cost
+    total_cost: str = Titles.total_cost
     total: str = Titles.total
+
+    @property
+    def sum_values(cls):
+        return {
+            Titles.length: 0,
+        }
 
 
 @dataclass
-class SourceEventsBaseTableTitles:
+class SourceEventsBaseTableTitles(WidthsMixin, StyleMixin):
     number: str = Titles.number
     source: str = Titles.source
     event_title: str = Titles.event_title
@@ -88,103 +147,10 @@ class SourceEventsBaseTableTitles:
     total_cost: str = Titles.total_cost
     total: str = Titles.total
 
-
-@dataclass(frozen=True)
-class AuxiliaryTable:
-    title = 'Вспомогательные'
-    unexpected_expenses = 'Непредвидимые расход'
-    tfu_unit_cost = ''
-
-
-@dataclass(frozen=True)
-class NetworkEventsTitles:
-    title = 'МероприятияСети'
-    base_table_structure = []
-
-
-class WidthsMixin:
-    widths = {
-        Titles.number: 
-        Titles.district
-        Titles.source
-        Titles.event_title
-        Titles.terms
-        Titles.laying_type
-        Titles.length
-        Titles.diameter
-        Titles.power
-        Titles.total_cost
-        Titles.total
-    }
-    
     @property
-    def widths(cls):
-
-'''
-
-
-@dataclass(frozen=True)
-class TableNames:
-    filename = 'capex.xlsm'
-    energy_source_unit_costs = 'УдельникиИсточники'
-    heating_network_unit_costs = 'УдельникиСети'
-    tfu_unit_cost = 'ТФУ'
-    deflators = 'Индексы'
-    terms = 'Сроки'
-    stages = 'Этапы'
-    nds = 'НДС'
-    energy_source_events = 'МероприятияИсточники'
-    heating_network_events = 'МероприятияСети'
-    first_year = 'Год начала'
-    last_year = 'Год окончания'
-    tso_list = 'СписокТСО'
-
-
-@dataclass(frozen=True)
-class HeaderTableNames:
-    number = '№ п/п'
-    tso_name = 'Наименование ТСО'
-    eto_name = 'Наименование ЕТО'
-    event_name = 'Наименование мероприятия'
-    mw = 'МВт'
-    gcal_in_h = 'Гкал/ч'
-    t_in_h = 'т/ч'
-    terms = 'Сроки'
-    total_cost = 'Общая стоимость мероприятий, млн руб. без НДС'
-    total = 'Итого'
-    head_capex_flow = (
-        'Капитальные затраты в прогнозных ценах с учетом НДС, млн руб.'
-    )
-    power_index = {
-        mw: 0,
-        gcal_in_h: 1,
-        t_in_h: 2
-    }
-    energy_sources = 'Источники тепловой энергии'
-    # The heat source event table we create
-    base_source_table_structure = {
-        number: 6,
-        # tso_name: 16,
-        # 'Административный район': 21,
-        'Наименование источника': 16,
-        event_name: 16,
-        terms: 10,
-        mw: 7,
-        gcal_in_h: 9,
-        t_in_h: 7,
-        total_cost: 14,
-        head_capex_flow: 0,
-        total: 10,
-    }
-    # Styles
-    base_source_table_base_style = 'base_style'
-    base_source_table_head_style = 'head_style'
-    base_source_table_head_table_style = 'head_table_style'
-    base_source_table_head_height = 70
-    # Headers
-    main_header_row = 1
-    main_header_column = 1
-    table_header_row = 3
-    table_header_column = 1
-    # The source table
-    enery_source_unit_type = 'Тип мероприятия'
+    def sum_values(cls):
+        return {
+            Titles.mw: 0,
+            Titles.gh: 1,
+            Titles.th: 2,
+        }
