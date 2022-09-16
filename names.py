@@ -10,11 +10,12 @@ class Titles:
     )
     chapter_12_directions = 'Направления мероприятий из Главы 12'
     chapter_8_directions = 'Направления мероприятий Глава 8'
+    chp_unit_costs = 'ЦТПУдельники'
     deflator = 'Индекс'
     deflators = 'Индексы'
     design = 'ПИР'
     diameter = 'Диаметр, мм'
-    district = 'Aдминистративный район'
+    district = 'Административный район'
     energy_source_events = 'МероприятияИсточники'
     energy_source_unit_costs = 'УдельникиИсточники'
     energy_sources = 'Источники тепловой энергии'
@@ -105,7 +106,7 @@ class WidthsMixin:
             Titles.mw: 7,
             # Titles.gh: 9,
             Titles.th: 7,
-            Titles.length: 7,
+            Titles.length: 10,
             Titles.diameter: 7,
             Titles.power: 9,
             Titles.total_cost: 14,
@@ -121,7 +122,7 @@ class NetworkEventsBaseTableTitles(WidthsMixin, StyleMixin):
     source: str = Titles.source
     event_title: str = Titles.event_title
     terms: str = Titles.terms
-    laying_type: str = Titles.laying_type
+    # laying_type: str = Titles.laying_type
     length: str = Titles.length
     diametr: str = Titles.diameter
     power: str = Titles.power
