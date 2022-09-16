@@ -37,7 +37,8 @@ class BaseMixin:
 
         elif (structure == titles.total_cost
               or structure == titles.total
-              or structure == titles.capex_flow):
+              or structure == titles.capex_flow
+              or structure == titles.length):
             ws.cell(row=row, column=column).number_format = '# ##0.0'
 
         return ws
@@ -314,7 +315,7 @@ class SourceEvents(TableMixin, BaseMixin):
                 unit_type = self.get_unit_type(titles, number)
                 power, is_tfu = self.get_power(table, number)
                 capex = tables.get_energy_source_capex(
-                    power, unit_type, is_tfu, titles
+                    power, unit_type, titles.power_range, is_tfu=True
                 )
                 ws.cell(row=row, column=column).value = capex
                 sum_tso_events[tso_name] += capex
@@ -385,3 +386,106 @@ class SourceEvents(TableMixin, BaseMixin):
                 table.sum_values[table.gh]
             )
         return power, index
+
+
+class NetworkEvents(TableMixin, BaseMixin):
+
+    def get_short_name(self, tso_name):
+        tso_name = super().get_short_name(tso_name)
+        return tso_name + ' Сети'
+
+    def create_content(self,
+                       ws,
+                       tables,
+                       titles,
+                       table,
+                       serial_number,
+                       number,
+                       sum_tso_events,
+                       year_sum_tso_events,
+                       sum_values,
+                       tso_name):
+
+        # Set style
+        style = table.base_style
+
+        # Set column number
+        column = table.header_column
+
+        # Set row number
+        row = serial_number + table.header_row + 1
+
+        # Where insert capex flow content
+        capex_flow_pos = column + len(table.__dataclass_fields__) - 1
+        # Create content
+        for structure in table.__dataclass_fields__:
+            structure = getattr(table, structure)
+            if structure == table.number:
+                # Number of order of this event in tso table
+                ws.cell(row=row, column=column).value = serial_number
+
+            elif structure == table.total_cost:
+
+                # For this structure we need obtain capex
+                unit_type = self.get_unit_type(titles, number)
+                if self.events[titles.gh][number] == '-':
+                    diameter = self.events[titles.diameter][number]
+                    length = self.events[titles.length][number]
+                    laying_type = self.events[titles.laying_type][number]
+                    capex = tables.get_heating_network_capex(
+                        diameter, length, laying_type, unit_type
+                    )
+                else:
+                    power = self.events[titles.gh][number]
+                    capex = tables.get_energy_source_capex(
+                        power, unit_type, titles.power_range, is_chp=True
+                    )
+                ws.cell(row=row, column=column).value = capex
+                sum_tso_events[tso_name] += capex
+
+            # Save sum powers for footer
+            elif structure in table.sum_values:
+                value = self.events[structure][number]
+                sum_values[tso_name][
+                    table.sum_values[structure]
+                ] += 0 if value == '-' else value
+                ws.cell(row=row, column=column).value = value
+
+            elif column == capex_flow_pos:
+                # For this structure we need obtain capex flow
+                terms = self.events[titles.terms][number]
+                capex_flow = tables.get_capex_flow(capex,
+                                                   terms,
+                                                   titles.energy_sources,
+                                                   titles)
+                if serial_number == 1:
+                    year_sum_tso_events[tso_name] = capex_flow
+
+                for index, value in enumerate(capex_flow):
+                    ws.cell(row=row, column=column).value = value
+                    ws.cell(row=row, column=column).style = style
+                    ws = self.set_number_format(ws,
+                                                structure,
+                                                titles,
+                                                row,
+                                                column)
+                    if serial_number > 1:
+                        year_sum_tso_events[tso_name][index] += (
+                            capex_flow[index]
+                        )
+                    column += 1
+
+            else:
+                # This structures goes unchanged
+                value = self.events[structure][number]
+                ws.cell(row=row, column=column).value = value
+
+            if structure == titles.total:
+                # For this structure we need obtain sum of capex flow
+                ws.cell(row=row, column=column).value = sum(capex_flow)
+
+            ws.cell(row=row, column=column).style = style
+            ws = self.set_number_format(ws, structure, titles, row, column)
+            # Next column
+            column += 1
+        return ws, sum_tso_events

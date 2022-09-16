@@ -23,6 +23,9 @@ class OriginTables:
         self.tfu_unit_cost = (
             self.__get_data(wb, table_names, titles.tfu_unit_cost)
         )
+        self.chp_unit_costs = (
+            self.__get_data(wb, table_names, titles.chp_unit_costs)
+        )
         self.deflators = self.__get_data(wb, table_names, titles.deflators)
         self.terms = self.__get_data_from_row(wb, table_names, titles.terms)
         self.stages = self.__get_data_from_header(wb,
@@ -155,14 +158,20 @@ class OriginTables:
     def get_energy_source_capex(self,
                                 power: float,
                                 unit_type: str,
-                                is_tfu: bool,
-                                titles) -> float:
+                                title: str,
+                                is_chp=False,
+                                is_tfu=False,
+                                ) -> float:
 
         if is_tfu:
             unit_cost = self.tfu_unit_cost.get(unit_type)[0]
         else:
-            powers = self.energy_source_unit_costs.get(titles.power_range)
-            unit_costs = self.energy_source_unit_costs.get(unit_type)
+            if is_chp:
+                powers = self.chp_unit_costs.get(title)
+                unit_costs = self.chp_unit_costs.get(unit_type)
+            else:
+                powers = self.energy_source_unit_costs.get(title)
+                unit_costs = self.energy_source_unit_costs.get(unit_type)
             unit_cost = unit_costs[self.__binary_search(power, powers)]
 
         return power * unit_cost
@@ -173,10 +182,13 @@ class OriginTables:
                                   laying_type: str,
                                   unit_type: str) -> float:
         diameters = self.heating_network_unit_costs.get('2Ду, мм')
+        unit_type = '' if unit_type == 'строительство' else '2'
         unit_costs = self.heating_network_unit_costs.get(laying_type
                                                          + unit_type)
+        # print(f'{diameter=}, {diameters=}')
+        # print(unit_costs)
         unit_cost = unit_costs[self.__binary_search(diameter, diameters)]
-        return length * unit_cost
+        return length * unit_cost / 1000
 
     def get_capex_flow(self,
                        capex: float,
