@@ -18,13 +18,16 @@ class Calculations:
     def get_energy_source_capex(self,
                                 power: float,
                                 unit_type: str,
-                                index: int) -> float:
-        if index:
-            powers = self.energy_source_unit_costs.get('Диапазон мощности')
+                                is_tfu: bool,
+                                titles) -> float:
+
+        if is_tfu:
+            unit_cost = self.tfu_unit_cost.get(unit_type)[0]
+        else:
+            powers = self.energy_source_unit_costs.get(titles.power_range)
             unit_costs = self.energy_source_unit_costs.get(unit_type)
             unit_cost = unit_costs[self.binary_search(power, powers)]
-        else:
-            unit_cost = self.tfu_unit_cost.get(unit_type)[0]
+
         return power * unit_cost
 
     def get_heating_network_capex(self,
@@ -54,7 +57,8 @@ class Calculations:
     def get_capex_flow(self,
                        capex: float,
                        time: str,
-                       object_type: str) -> dict:
+                       otype: str,
+                       titles) -> dict:
         time = str(time)
         if time[:4] == time[-4:]:
             start = end = int(time)
@@ -65,14 +69,15 @@ class Calculations:
         capex_flow = []
         time = end - start + 1
         deflator = 1
-        design_rate = self.stages['ПИР'][object_type] / 100
-        for index, year in enumerate(self.deflators['Год']):
-            if year >= self.terms['Цены, год'][0]:
-                deflator *= self.deflators['Индекс'][index]
+        design_rate = self.stages[titles.design][otype] / 100
+        for index, year in enumerate(self.deflators[titles.year]):
+            if year >= self.terms[titles.year_cost][0]:
+                deflator *= self.deflators[titles.deflator][index]
+
             # fill the capex flow
             if (
-                self.terms['Год начала'][0] <= year
-                <= self.terms['Год окончания'][0]
+                self.terms[titles.first_year][0] <= year
+                <= self.terms[titles.last_year][0]
             ):
                 if start <= year <= end:
                     if time == 1:
@@ -84,7 +89,7 @@ class Calculations:
                     else:
                         # in the first year we carry out design and survey work
                         capex_flow.append(capex * design_rate * deflator)
-                    capex_flow[-1] *= (1 + self.nds['НДС'][0])
+                    capex_flow[-1] *= (1 + self.nds[titles.nds][0])
                 else:
                     capex_flow.append(0)
 
