@@ -42,6 +42,9 @@ class OriginTables:
             self.__get_data(wb, table_names, titles.heating_network_events)
         )
 
+    def __data_in_dataclasses(self):
+        pass
+
     def __get_data(self, wb, names, name) -> dict:
         '''Collect datas as shown below
         dict = {
