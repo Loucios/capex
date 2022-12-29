@@ -67,6 +67,9 @@ class BaseMixin:
             return start_year
         return f'{start_year} - {end_year}'
 
+    def event_line(self):
+        pass
+
 
 class TableMixin:
 
@@ -91,6 +94,13 @@ class TableMixin:
             for tso in tso_frequency
             if tso is not None
         }
+
+        # tso_info = {
+        #   'tso_name': num_events,
+        #   'chapter8_1': [num_events = 24, is_appear = True]
+        #   ...
+        #   'chapter8_8': [num_events = 24, is_appear = True]
+        # }
 
         # Must have sums
         sum_tso_events = defaultdict(int)
